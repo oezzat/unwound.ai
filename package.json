@@ -1,0 +1,21 @@
+{
+  "name": "wound-care-platform",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*",
+    "server",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:clinician": "npm run dev -w apps/clinician",
+    "dev:patient": "npm run dev -w apps/patient",
+    "build": "npm run build -w server && npm run build -w apps/clinician && npm run build -w apps/patient",
+    "test": "npm test -w server",
+    "typecheck": "npm run typecheck -w server"
+  }
+}

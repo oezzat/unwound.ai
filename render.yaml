@@ -1,0 +1,81 @@
+# Render Blueprint — API + agent runtime + Postgres.
+# Deploy: Render dashboard → New → Blueprint → select this repo.
+# Then set the two `sync: false` variables in the dashboard (ANTHROPIC_API_KEY, CORS_ORIGINS).
+databases:
+  - name: wound-care-db
+    plan: basic-256mb        # verify current plan names in the Render dashboard; use a paid plan for real data
+    databaseName: woundcare
+    user: woundcare
+
+services:
+  - type: web
+    name: wound-care-api
+    runtime: node
+    plan: starter            # keep >= starter: free instances sleep and drop SSE streams
+    region: oregon
+    rootDir: .
+    buildCommand: npm ci --include=dev && npm run build -w server
+    startCommand: npm run start -w server
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase: { name: wound-care-db, property: connectionString }
+      - key: PGSSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-5-5
+      - key: CORS_ORIGINS        # comma-separated Vercel URLs, e.g. https://augi.vercel.app,https://selma.vercel.app
+        sync: false
+      - key: DEMO_SEED           # "true" creates demo users/patients on first boot (DEMO ONLY — never with real PHI)
+        value: "false"
+      - key: DEMO_PASSWORD
+        sync: false
+      - key: BOOTSTRAP_SUPERADMIN_EMAIL     # first boot only: creates a platform super admin if none exists
+        sync: false
+      - key: BOOTSTRAP_SUPERADMIN_PASSWORD  # >= 12 chars; REMOVE this variable after the first sign-in
+        sync: false
+      - key: ANALYTICS_PSEUDONYM_SECRET     # keeps dataset-export pseudonyms stable; generate once and never rotate casually
+        generateValue: true
+      - key: GUIDELINES_DATABASE_URL
+        sync: false
+      - key: EMBED_PROVIDER
+        value: bedrock
+      - key: EMBED_DIMS
+        value: "1024"
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: PHOTO_ENCRYPTION_KEY   # REQUIRED in production. Generate: openssl rand -base64 32. Store a copy somewhere safe: if it is lost, every stored photo is unreadable.
+        sync: false
+      - key: PHOTO_STORE            # db = encrypted blobs in Postgres (fine for the pilot) | s3 = S3 bucket (set PHOTO_BUCKET, optional PHOTO_KMS_KEY_ID)
+        value: db
+      - key: SCRIBE_PROVIDER     # none | aws   (see docs/aws-healthscribe.md; "mock" is refused in production)
+        value: none
+      - key: HEALTHSCRIBE_ROLE_ARN
+        sync: false
+      - key: HEALTHSCRIBE_OUTPUT_BUCKET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: TURN_URLS           # e.g. turn:turn.example.com:3478,turns:turn.example.com:443?transport=tcp
+        sync: false
+      - key: TURN_SECRET         # coturn static-auth-secret
+        sync: false
+      - key: CODING_PROVIDER     # rules | aws
+        value: rules
+      - key: AWS_REGION
+        value: us-east-1
